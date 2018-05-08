@@ -10,27 +10,24 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 #include <math.h>
+
+#include <main.h>
+#include <inputs.h>
 using namespace glm;
 
 GLFWwindow* window; 
 GLuint programID;
 GLuint MatrixID;
 glm::mat4 mvp;
-GLuint w = 100;
-GLuint nb_vertices = (w-1)*(w-1)*2*3*3;
+GLuint w = 101;
+GLuint nb_vertices = 3*((w-1)*((w)*2+2));
 GLfloat scl = 0.1;
 
-int compute_mvp();
-int init();
-int load_models();
-int main_loop();
-void put_vertex(GLfloat* buffer, const glm::vec3& vertex, GLuint* index);
-GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path);
 
 int main(){
   init();
 
-  programID = LoadShaders( "vshader.txt", "fshader.txt" );
+  programID = LoadShaders( "src/shaders/vshader.txt", "src/shaders/fshader.txt" );
   load_models();
   main_loop();
 
@@ -69,6 +66,13 @@ int init(){
 }
 
 int load_models(){
+  
+  GLfloat** height_map = (GLfloat**) malloc(w*sizeof(GLfloat*));
+  for(unsigned int i = 0;i<w;i++){
+    height_map[i] = (GLfloat*) malloc(w*sizeof(GLfloat));
+  }
+
+  compute_height_map(height_map);
   // Get a handle for our "MVP" uniform
   // Only during the initialisation
   MatrixID = glGetUniformLocation(programID, "MVP");
@@ -93,24 +97,24 @@ int load_models(){
   GLfloat step = 1.0f/ (float) w*w;
   //GLfloat step = 0.1f;
   GLuint ind = 0;
-  glm::vec2 c = vec2(0.0f,0.0f);
-  for(unsigned int i=0;i<w-1;i++){
-    for(unsigned int j=0;j<w-1;j++){
-      //making a square
-
-      // first triangle
-      put_vertex(g_vertex_buffer_data, vec3(c.x,c.y,glm::sin(c.x*M_PI*2)),&ind);
-      put_vertex(g_vertex_buffer_data, vec3(c.x+step,c.y,glm::sin((c.x+step)*M_PI*2)),&ind);
-      put_vertex(g_vertex_buffer_data, vec3(c.x,c.y+step,glm::sin(c.x*M_PI*2)),&ind);
-
-      // second triangle
-      put_vertex(g_vertex_buffer_data, vec3(c.x,c.y+step,glm::sin(c.x*M_PI*2)),&ind);
-      put_vertex(g_vertex_buffer_data, vec3(c.x+step,c.y,glm::sin((c.x+step)*M_PI*2)),&ind);
-      put_vertex(g_vertex_buffer_data, vec3(c.x+step,c.y+step,glm::sin((c.x+step)*M_PI*2)),&ind);
-      c.x += step;
+  int j;
+  for(unsigned int i=0;i<w-1;){
+    for(j=0;j<w;j++){
+      put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i],i*scl),&ind);
+      put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
     }
-    c.x = 0.0f;
-    c.y += step;
+    j--;
+    put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
+    put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
+    i++;
+    for(;0<=j;j--){
+      put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i],i*scl),&ind);
+      put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
+    }
+    j++;
+    put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
+    put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
+    i++;
   }
   GLuint vertexbuffer;
   // Generate 1 buffer, put the resulting identifier in vertexbuffer
@@ -122,7 +126,7 @@ int load_models(){
 
   GLfloat* vertex_color = (GLfloat*) malloc(nb_vertices*sizeof(GLfloat));
 
-  for(unsigned int i=0;i<(w-1)*(w-1)*2*3;i++){
+  for(unsigned int i=0;i<nb_vertices/3;i++){
     vertex_color[i*3] = 1.0f;
     vertex_color[i*3+1] = 1.0f;
     vertex_color[i*3+2] = 1.0f;
@@ -131,7 +135,7 @@ int load_models(){
   GLuint color_buffer;
   glGenBuffers(1,&color_buffer);
   glBindBuffer(GL_ARRAY_BUFFER,color_buffer);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_color), vertex_color, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*nb_vertices, vertex_color, GL_STATIC_DRAW);
 
   // 1rst attribute buffer : vertices
   glEnableVertexAttribArray(0);
@@ -162,8 +166,8 @@ int load_models(){
 void put_vertex(GLfloat* buffer, const glm::vec3& vertex, GLuint* index){
 
   buffer[(*index)++] = vertex.x;
-  buffer[(*index)++] = vertex.z;
   buffer[(*index)++] = vertex.y;
+  buffer[(*index)++] = vertex.z;
 }
 
 void compute_height_map(GLfloat** height_map){
@@ -173,47 +177,19 @@ void compute_height_map(GLfloat** height_map){
     }
   }
 }
-int compute_mvp() {
-  int width = 4;
-  int height = 3;
-  GLfloat rotation = 0;
-  // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-  glm::mat4 Projection = glm::perspective(glm::radians(45.0f), (float) width / (float)height, 0.1f, 100.0f);
-
-  // Or, for an ortho camera :
-  //glm::mat4 Projection = glm::ortho(-10.0f,10.0f,-10.0f,10.0f,0.0f,100.0f); // In world coordinates
-
-  // Camera matrix
-  glm::mat4 View = glm::lookAt(
-      glm::vec3(4,3,3), // Camera is at (4,3,3), in World Space
-      glm::vec3(0,0,0), // and looks at the origin
-      glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
-      );
-
-    
-    glm::mat4 sc = glm::scale(glm::vec3(1.0f, 1.0f, 1.0f));
-    glm::mat4 rot = glm::rotate(rotation, glm::vec3(1.0f,0.0f,0.0f));
-    glm::mat4 tr = glm::translate(glm::vec3(0.0f, 0.0f, 0.0f));
-
-    // Model matrix : an identity matrix (model will be at the origin)
-    //glm::mat4 Model = glm::mat4(1.0f);
-    glm::mat4 Model = tr * rot * sc;
-    // Our ModelViewProjection : multiplication of our 3 matrices
-    mvp = Projection * View * Model; // Remember, matrix multiplication is the other way around
-}
 
 int main_loop(){
   do{
     // Clear the screen. It's not mentioned before Tutorial 02, but it can cause flickering, so it's there nonetheless.
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    compute_mvp();
+    compute_mvp(mvp);
     // Send our transformation to the currently bound shader, in the "MVP" uniform
     // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
 
     // Draw the triangle !
-    glDrawArrays(GL_TRIANGLES, 0, nb_vertices); // Starting from vertex 0; 3 vertices total -> 1 triangle
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, nb_vertices); // Starting from vertex 0; 3 vertices total -> 1 triangle
 
     // Swap buffers
     glfwSwapBuffers(window);
