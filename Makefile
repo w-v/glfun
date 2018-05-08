@@ -1,2 +1,31 @@
+CFLAGS = -Wall -g
 main: main.cpp
-g++
+	g++ $(CFLAGS) -lGLEW -lglfw -lGL main.cpp -o main
+
+
+	
+
+	
+
+	
+
+	
+
+
+
+
+	
+
+
+
+	
+
+
+
+
+	
+
+
+
+
+	
