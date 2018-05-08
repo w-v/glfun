@@ -13,6 +13,7 @@
 
 #include <main.h>
 #include <inputs.h>
+#include <PerlinNoise.h>
 using namespace glm;
 
 GLFWwindow* window; 
@@ -22,13 +23,13 @@ glm::mat4 mvp;
 GLuint w = 101;
 GLuint nb_vertices = 3*((w-1)*((w)*2+2));
 GLfloat scl = 0.1;
+float t = 0.0f;
 
 
 int main(){
   init();
 
   programID = LoadShaders( "src/shaders/vshader.txt", "src/shaders/fshader.txt" );
-  load_models();
   main_loop();
 
 }
@@ -72,7 +73,7 @@ int load_models(){
     height_map[i] = (GLfloat*) malloc(w*sizeof(GLfloat));
   }
 
-  compute_height_map(height_map);
+  compute_height_map(height_map,t);
   // Get a handle for our "MVP" uniform
   // Only during the initialisation
   MatrixID = glGetUniformLocation(programID, "MVP");
@@ -161,6 +162,12 @@ int load_models(){
       (void*)0            // array buffer offset
       );
 
+  for(unsigned int i = 0;i<w;i++){
+    free(height_map[i] );
+  }
+  free(height_map);
+  free(g_vertex_buffer_data);
+  free(vertex_color);
 }
 
 void put_vertex(GLfloat* buffer, const glm::vec3& vertex, GLuint* index){
@@ -170,10 +177,12 @@ void put_vertex(GLfloat* buffer, const glm::vec3& vertex, GLuint* index){
   buffer[(*index)++] = vertex.z;
 }
 
-void compute_height_map(GLfloat** height_map){
+void compute_height_map(GLfloat** height_map,float t){
+  PerlinNoise p(69); 
   for(unsigned int i=0;i<w;i++){
     for(unsigned int j=0;j<w;j++){
-      height_map[i][j] = sin(i*scl)*sin(j*scl);
+      //height_map[i][j] = sin(i*scl)*sin(j*scl);
+      height_map[i][j] = p.noise(i*scl,j*scl,t);
     }
   }
 }
@@ -183,6 +192,8 @@ int main_loop(){
     // Clear the screen. It's not mentioned before Tutorial 02, but it can cause flickering, so it's there nonetheless.
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    t += 0.1f;
+    load_models();
     compute_mvp(mvp);
     // Send our transformation to the currently bound shader, in the "MVP" uniform
     // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
