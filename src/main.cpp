@@ -34,6 +34,7 @@ int main(){
   init();
 
   programID = LoadShaders( "src/shaders/vshader.txt", "src/shaders/fshader.txt" );
+  load_models();
   main_loop();
 
 }
@@ -42,7 +43,9 @@ void loadTexture(const char * imagepath){
   glGenTextures(1, &Texture);
 
   glBindTexture(GL_TEXTURE_2D, Texture);
-  Texture = loadDDS(imagepath);
+  Texture = loadBMP_custom(imagepath);
+  if(Texture == 0)
+    printf("could not load texture");
 }
 
 int init(){
@@ -91,7 +94,7 @@ int load_models(){
   MatrixID = glGetUniformLocation(programID, "MVP");
   TextureID = glGetUniformLocation(programID, "myTextureSampler");
 
-  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   // Enable depth test
   glEnable(GL_DEPTH_TEST);
   // Accept fragment if it closer to the camera than the former one
@@ -131,15 +134,53 @@ int load_models(){
     i++;
   }
   GLuint vertexbuffer;
-  // Generate 1 buffer, put the resulting identifier in vertexbuffer
   glGenBuffers(1, &vertexbuffer);
-  // The following commands will talk about our 'vertexbuffer' buffer
   glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-  // Give our vertices to OpenGL.
   glBufferData(GL_ARRAY_BUFFER, nb_vertices*sizeof(GLfloat), g_vertex_buffer_data, GL_STATIC_DRAW);
 
-  loadTexture("texture/grass.dds");
+  loadTexture("texture/ff.bmp");
 
+  GLfloat* uv = (GLfloat*) malloc((nb_vertices/3)*2*sizeof(GLfloat));
+  ind = 0;
+  vec2 uv_coords[3] = {
+    vec2(0.0f,0.0f),
+    vec2(0.1f,0.0f),
+    vec2(0.0f,0.1f)
+  };
+  for(unsigned int i = 0;i < nb_vertices/3;i++){
+    put_vertex2(uv,uv_coords[i%3],&ind);
+  }/*
+  float uv[100] = {
+    0.0f, 0.0f,
+    0.1f, 0.0f,
+    0.0f, 0.1f,
+    0.0f, 0.0f,
+    0.1f, 0.0f,
+    0.0f, 0.1f,
+    0.0f, 0.0f,
+    0.1f, 0.0f,
+    0.0f, 0.1f,
+    0.0f, 0.0f,
+    0.1f, 0.0f,
+    0.0f, 0.1f,
+    0.0f, 0.0f,
+    0.1f, 0.0f,
+    0.0f, 0.1f,
+    0.0f, 0.0f,
+    0.1f, 0.0f,
+    0.0f, 0.1f,
+    0.0f, 0.0f,
+    0.1f, 0.0f,
+    0.0f, 0.1f,
+    0.0f, 0.0f,
+    0.1f, 0.0f,
+    0.0f, 0.1f
+  };*/
+  
+  GLuint uv_buffer;
+  glGenBuffers(1,&uv_buffer);
+  glBindBuffer(GL_ARRAY_BUFFER,uv_buffer);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*(nb_vertices/3)*2, uv, GL_STATIC_DRAW);
 
   // 1rst attribute buffer : vertices
   glEnableVertexAttribArray(0);
@@ -153,12 +194,25 @@ int load_models(){
       (void*)0            // array buffer offset
       );
 
+  // 2nd attribute buffer : vertices
+  glEnableVertexAttribArray(1);
+  glBindBuffer(GL_ARRAY_BUFFER, uv_buffer);
+  glVertexAttribPointer(
+      1,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+      2,                  // size
+      GL_FLOAT,           // type
+      GL_FALSE,           // normalized?
+      0,                  // stride
+      (void*)0            // array buffer offset
+      );
 
   for(unsigned int i = 0;i<w;i++){
     free(height_map[i] );
   }
   free(height_map);
   free(g_vertex_buffer_data);
+  //free(uv);
+
 }
 
 void put_vertex(GLfloat* buffer, const glm::vec3& vertex, GLuint* index){
@@ -166,6 +220,12 @@ void put_vertex(GLfloat* buffer, const glm::vec3& vertex, GLuint* index){
   buffer[(*index)++] = vertex.x;
   buffer[(*index)++] = vertex.y;
   buffer[(*index)++] = vertex.z;
+}
+
+void put_vertex2(GLfloat* buffer, const glm::vec2& vertex, GLuint* index){
+
+  buffer[(*index)++] = vertex.x;
+  buffer[(*index)++] = vertex.y;
 }
 
 void compute_height_map(GLfloat** height_map,float t){
@@ -184,7 +244,6 @@ int main_loop(){
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     t += 0.1f;
-    load_models();
     compute_mvp(mvp);
     // Send our transformation to the currently bound shader, in the "MVP" uniform
     // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
