@@ -22,7 +22,7 @@ GLFWwindow* window;
 GLuint programID;
 GLuint MatrixID;
 glm::mat4 mvp;
-GLuint w = 101;
+GLuint w = 301;
 GLuint nb_vertices = 3*((w-1)*((w)*2+2));
 GLfloat scl = 0.1;
 float t = 0.0f;
@@ -94,7 +94,7 @@ int load_models(){
   MatrixID = glGetUniformLocation(programID, "MVP");
   TextureID = glGetUniformLocation(programID, "myTextureSampler");
 
-  //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   // Enable depth test
   glEnable(GL_DEPTH_TEST);
   // Accept fragment if it closer to the camera than the former one
@@ -142,13 +142,14 @@ int load_models(){
 
   GLfloat* uv = (GLfloat*) malloc((nb_vertices/3)*2*sizeof(GLfloat));
   ind = 0;
-  vec2 uv_coords[3] = {
+  vec2 uv_coords[4] = {
     vec2(0.0f,0.0f),
-    vec2(0.1f,0.0f),
-    vec2(0.0f,0.1f)
+    vec2(1.0f,0.0f),
+    vec2(0.0f,1.0f),
+    vec2(1.0f,1.0f)
   };
   for(unsigned int i = 0;i < nb_vertices/3;i++){
-    put_vertex2(uv,uv_coords[i%3],&ind);
+    put_vertex2(uv,uv_coords[i%4],&ind);
   }/*
   float uv[100] = {
     0.0f, 0.0f,
@@ -230,10 +231,12 @@ void put_vertex2(GLfloat* buffer, const glm::vec2& vertex, GLuint* index){
 
 void compute_height_map(GLfloat** height_map,float t){
   PerlinNoise p(69); 
+  float ter_scl1 = 0.5;
+  float ter_scl2 = 0.1;
   for(unsigned int i=0;i<w;i++){
     for(unsigned int j=0;j<w;j++){
       //height_map[i][j] = sin(i*scl)*sin(j*scl);
-      height_map[i][j] = p.noise(i*scl,j*scl,0);
+      height_map[i][j] = p.noise(i*scl*ter_scl1,j*scl*ter_scl1,0)+p.noise(i*scl*ter_scl2,j*scl*ter_scl2,69)*10;
     }
   }
 }
