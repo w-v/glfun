@@ -14,6 +14,8 @@
 #include <main.h>
 #include <inputs.h>
 #include <PerlinNoise.h>
+#include <texture.h>
+
 using namespace glm;
 
 GLFWwindow* window; 
@@ -24,6 +26,8 @@ GLuint w = 101;
 GLuint nb_vertices = 3*((w-1)*((w)*2+2));
 GLfloat scl = 0.1;
 float t = 0.0f;
+GLuint Texture;
+GLuint TextureID; 
 
 
 int main(){
@@ -32,6 +36,13 @@ int main(){
   programID = LoadShaders( "src/shaders/vshader.txt", "src/shaders/fshader.txt" );
   main_loop();
 
+}
+
+void loadTexture(const char * imagepath){
+  glGenTextures(1, &Texture);
+
+  glBindTexture(GL_TEXTURE_2D, Texture);
+  Texture = loadDDS(imagepath);
 }
 
 int init(){
@@ -68,6 +79,7 @@ int init(){
 
 int load_models(){
   
+
   GLfloat** height_map = (GLfloat**) malloc(w*sizeof(GLfloat*));
   for(unsigned int i = 0;i<w;i++){
     height_map[i] = (GLfloat*) malloc(w*sizeof(GLfloat));
@@ -77,7 +89,8 @@ int load_models(){
   // Get a handle for our "MVP" uniform
   // Only during the initialisation
   MatrixID = glGetUniformLocation(programID, "MVP");
-  
+  TextureID = glGetUniformLocation(programID, "myTextureSampler");
+
   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   // Enable depth test
   glEnable(GL_DEPTH_TEST);
@@ -125,18 +138,8 @@ int load_models(){
   // Give our vertices to OpenGL.
   glBufferData(GL_ARRAY_BUFFER, nb_vertices*sizeof(GLfloat), g_vertex_buffer_data, GL_STATIC_DRAW);
 
-  GLfloat* vertex_color = (GLfloat*) malloc(nb_vertices*sizeof(GLfloat));
+  loadTexture("texture/grass.dds");
 
-  for(unsigned int i=0;i<nb_vertices/3;i++){
-    vertex_color[i*3] = 1.0f;
-    vertex_color[i*3+1] = 1.0f;
-    vertex_color[i*3+2] = 1.0f;
-  }
-  
-  GLuint color_buffer;
-  glGenBuffers(1,&color_buffer);
-  glBindBuffer(GL_ARRAY_BUFFER,color_buffer);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*nb_vertices, vertex_color, GL_STATIC_DRAW);
 
   // 1rst attribute buffer : vertices
   glEnableVertexAttribArray(0);
@@ -150,24 +153,12 @@ int load_models(){
       (void*)0            // array buffer offset
       );
 
-  // 2nd attribute buffer : vertices
-  glEnableVertexAttribArray(1);
-  glBindBuffer(GL_ARRAY_BUFFER, color_buffer);
-  glVertexAttribPointer(
-      1,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-      3,                  // size
-      GL_FLOAT,           // type
-      GL_FALSE,           // normalized?
-      0,                  // stride
-      (void*)0            // array buffer offset
-      );
 
   for(unsigned int i = 0;i<w;i++){
     free(height_map[i] );
   }
   free(height_map);
   free(g_vertex_buffer_data);
-  free(vertex_color);
 }
 
 void put_vertex(GLfloat* buffer, const glm::vec3& vertex, GLuint* index){
@@ -182,7 +173,7 @@ void compute_height_map(GLfloat** height_map,float t){
   for(unsigned int i=0;i<w;i++){
     for(unsigned int j=0;j<w;j++){
       //height_map[i][j] = sin(i*scl)*sin(j*scl);
-      height_map[i][j] = p.noise(i*scl,j*scl,t);
+      height_map[i][j] = p.noise(i*scl,j*scl,0);
     }
   }
 }
@@ -199,6 +190,9 @@ int main_loop(){
     // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
 
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, Texture);
+    glUniform1i(TextureID, 0);
     // Draw the triangle !
     glDrawArrays(GL_TRIANGLE_STRIP, 0, nb_vertices); // Starting from vertex 0; 3 vertices total -> 1 triangle
 

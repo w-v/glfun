@@ -2,6 +2,7 @@
 extern GLFWwindow* window; 
 int init();
 int load_models();
+void loadTexture(const char * imagepath);
 int main_loop();
 void put_vertex(GLfloat* buffer, const glm::vec3& vertex, GLuint* index);
 GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path);
