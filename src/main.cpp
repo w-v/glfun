@@ -28,7 +28,7 @@ GLfloat scl = 0.1;
 float t = 0.0f;
 GLuint Texture;
 GLuint TextureID; 
-
+bool fill = true;
 
 int main(){
   init();
@@ -94,7 +94,6 @@ int load_models(){
   MatrixID = glGetUniformLocation(programID, "MVP");
   TextureID = glGetUniformLocation(programID, "myTextureSampler");
 
-  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   // Enable depth test
   glEnable(GL_DEPTH_TEST);
   // Accept fragment if it closer to the camera than the former one
@@ -252,6 +251,16 @@ int main_loop(){
     // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
 
+    if (glfwGetKey(window, GLFW_KEY_W ) == GLFW_PRESS){
+      fill=!fill;
+      if(fill){
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+      }
+      else{
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+      }
+    }
+    
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, Texture);
     glUniform1i(TextureID, 0);
