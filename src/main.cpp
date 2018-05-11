@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <iostream>
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -11,10 +12,13 @@
 #include <glm/gtx/transform.hpp>
 #include <math.h>
 
-#include <main.h>
-#include <inputs.h>
-#include <PerlinNoise.h>
-#include <texture.h>
+#include "main.h"
+#include "inputs.h"
+#include "PerlinNoise.h"
+#include "texture.h"
+#include "VertexArray.h"
+#include "VertexBuffer.h"
+#include "VertexBufferLayout.h"
 
 using namespace glm;
 
@@ -34,15 +38,30 @@ int main(){
   init();
 
   programID = LoadShaders( "src/shaders/vshader.txt", "src/shaders/fshader.txt" );
+  GLCall(glUseProgram(programID));
   load_models();
   main_loop();
 
 }
 
-void loadTexture(const char * imagepath){
-  glGenTextures(1, &Texture);
+void GLClearError(){
+  while(glGetError() != GL_NO_ERROR);
+}
 
-  glBindTexture(GL_TEXTURE_2D, Texture);
+bool GLLogCall(const char* function, const char* file, int line){
+
+  while(GLenum error = glGetError()){
+    std::cout << "[OpenGL Error] (" << error << ") " << function << " " << file <<  ":" << line << std::endl;
+    return false;
+  }
+  return true;
+
+}
+
+void loadTexture(const char * imagepath){
+  GLCall(glGenTextures(1, &Texture));
+
+  GLCall(glBindTexture(GL_TEXTURE_2D, Texture));
   Texture = loadBMP_custom(imagepath);
   if(Texture == 0)
     printf("could not load texture");
@@ -50,7 +69,7 @@ void loadTexture(const char * imagepath){
 
 int init(){
   glewExperimental = true; // Needed for core profile
-  if( !glfwInit() )
+  if( !glfwInit())
   {
     fprintf( stderr, "Failed to initialize GLFW\n" );
     return -1;
@@ -65,7 +84,7 @@ int init(){
   window = glfwCreateWindow( 1024, 768, "Tutorial 01", NULL, NULL);
   if( window == NULL ){
     fprintf( stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n" );
-    glfwTerminate();
+    GLCall(glfwTerminate());
     return -1;
   }
 
@@ -91,21 +110,16 @@ int load_models(){
   compute_height_map(height_map,t);
   // Get a handle for our "MVP" uniform
   // Only during the initialisation
-  MatrixID = glGetUniformLocation(programID, "MVP");
-  TextureID = glGetUniformLocation(programID, "myTextureSampler");
+  GLCall(MatrixID = glGetUniformLocation(programID, "MVP"));
+  GLCall(TextureID = glGetUniformLocation(programID, "myTextureSampler"));
 
   // Enable depth test
-  glEnable(GL_DEPTH_TEST);
+  GLCall(glEnable(GL_DEPTH_TEST));
   // Accept fragment if it closer to the camera than the former one
-  glDepthFunc(GL_LESS);
+  GLCall(glDepthFunc(GL_LESS));
 
   // Use our shader
-  glUseProgram(programID);
 
-  // Draw nothing, see you in tutorial 2 !
-  GLuint VertexArrayID;
-  glGenVertexArrays(1, &VertexArrayID);
-  glBindVertexArray(VertexArrayID);
 
   GLfloat* g_vertex_buffer_data = (GLfloat*) malloc(nb_vertices*sizeof(GLfloat));
   GLfloat* uv = (GLfloat*) malloc((nb_vertices/3)*2*sizeof(GLfloat));
@@ -146,22 +160,34 @@ int load_models(){
     put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
     i++;
   }
-  GLuint vertexbuffer;
-  glGenBuffers(1, &vertexbuffer);
-  glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-  glBufferData(GL_ARRAY_BUFFER, nb_vertices*sizeof(GLfloat), g_vertex_buffer_data, GL_STATIC_DRAW);
+  /*GLuint VertexArrayID;
+  GLCall(glGenVertexArrays(1, &VertexArrayID));
+  GLCall(glBindVertexArray(VertexArrayID));*/
+  VertexArray* va = new VertexArray();
+  va->bind();
+  // Draw nothing, see you in tutorial 2 !
+  VertexBuffer * vb = new VertexBuffer(g_vertex_buffer_data, nb_vertices);
+  //loadTexture("texture/ff.bmp");
+  VertexBufferLayout* layout = new VertexBufferLayout;
+  layout->push(3,false);
+  va->addBuffer(*vb, *layout);
+  
+  /*GLuint vertexbuffer;
+  GLCall(glGenBuffers(1, &vertexbuffer));
+  GLCall(glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer));
+  GLCall(glBufferData(GL_ARRAY_BUFFER, nb_vertices*sizeof(GLfloat), g_vertex_buffer_data, GL_STATIC_DRAW));*/
 
-  loadTexture("texture/ff.bmp");
 
   
-  GLuint uv_buffer;
-  glGenBuffers(1,&uv_buffer);
-  glBindBuffer(GL_ARRAY_BUFFER,uv_buffer);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*(nb_vertices/3)*2, uv, GL_STATIC_DRAW);
-
+ /* GLuint uv_buffer;
+  GLCall(glGenBuffers(1,&uv_buffer));
+  GLCall(glBindBuffer(GL_ARRAY_BUFFER,uv_buffer));
+  GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*(nb_vertices/3)*2, uv, GL_STATIC_DRAW));
+*/
   // 1rst attribute buffer : vertices
-  glEnableVertexAttribArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+  /*GLCall(glEnableVertexAttribArray(0));
+  //vb.bind();
+  //GLCall(glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer));
   glVertexAttribPointer(
       0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
       3,                  // size
@@ -170,10 +196,10 @@ int load_models(){
       0,                  // stride
       (void*)0            // array buffer offset
       );
-
+*/
   // 2nd attribute buffer : vertices
-  glEnableVertexAttribArray(1);
-  glBindBuffer(GL_ARRAY_BUFFER, uv_buffer);
+  /*GLCall(glEnableVertexAttribArray(1));
+  GLCall(glBindBuffer(GL_ARRAY_BUFFER, uv_buffer));
   glVertexAttribPointer(
       1,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
       2,                  // size
@@ -182,7 +208,7 @@ int load_models(){
       0,                  // stride
       (void*)0            // array buffer offset
       );
-
+*/
   for(unsigned int i = 0;i<w;i++){
     free(height_map[i] );
   }
@@ -220,30 +246,30 @@ void compute_height_map(GLfloat** height_map,float t){
 int main_loop(){
   do{
     // Clear the screen. It's not mentioned before Tutorial 02, but it can cause flickering, so it's there nonetheless.
-    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    GLCall(glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
     t += 0.1f;
     compute_mvp(mvp);
     // Send our transformation to the currently bound shader, in the "MVP" uniform
     // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
-    glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
+    GLCall(glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]));
 
     if (glfwGetKey(window, GLFW_KEY_W ) == GLFW_PRESS){
       fill=!fill;
       if(fill){
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        GLCall(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
       }
       else{
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        GLCall(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
       }
     }
     
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, Texture);
-    glUniform1i(TextureID, 0);
+    GLCall(glActiveTexture(GL_TEXTURE0));
+    GLCall(glBindTexture(GL_TEXTURE_2D, Texture));
+    GLCall(glUniform1i(TextureID, 0));
     // Draw the triangle !
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, nb_vertices); // Starting from vertex 0; 3 vertices total -> 1 triangle
-
+    GLCall(glDrawArrays(GL_TRIANGLE_STRIP, 0, nb_vertices)); // Starting from vertex 0; 3 vertices total -> 1 triangle
+    //glDrawArrays(GL_TRIANGLE_STRIP, 0, nb_vertices); // Starting from vertex 0; 3 vertices total -> 1 triangle
     // Swap buffers
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -252,15 +278,15 @@ int main_loop(){
   while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
       glfwWindowShouldClose(window) == 0 );
 
-  glDisableVertexAttribArray(0);  
+  GLCall(glDisableVertexAttribArray(0));  
   return 0;
 }
 
 GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path){
 
   // Create the shaders
-  GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
-  GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
+  GLCall(GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER));
+  GLCall(GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER));
 
   // Read the Vertex Shader code from the file
   std::string VertexShaderCode;
@@ -293,15 +319,15 @@ GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path
   // Compile Vertex Shader
   printf("Compiling shader : %s\n", vertex_file_path);
   char const * VertexSourcePointer = VertexShaderCode.c_str();
-  glShaderSource(VertexShaderID, 1, &VertexSourcePointer , NULL);
-  glCompileShader(VertexShaderID);
+  GLCall(glShaderSource(VertexShaderID, 1, &VertexSourcePointer , NULL));
+  GLCall(glCompileShader(VertexShaderID));
 
   // Check Vertex Shader
-  glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
-  glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+  GLCall(glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result));
+  GLCall(glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength));
   if ( InfoLogLength > 0 ){
     std::vector<char> VertexShaderErrorMessage(InfoLogLength+1);
-    glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
+    GLCall(glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]));
     printf("%s\n", &VertexShaderErrorMessage[0]);
   }
 
@@ -310,15 +336,15 @@ GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path
   // Compile Fragment Shader
   printf("Compiling shader : %s\n", fragment_file_path);
   char const * FragmentSourcePointer = FragmentShaderCode.c_str();
-  glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer , NULL);
-  glCompileShader(FragmentShaderID);
+  GLCall(glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer , NULL));
+  GLCall(glCompileShader(FragmentShaderID));
 
   // Check Fragment Shader
-  glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
-  glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+  GLCall(glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result));
+  GLCall(glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength));
   if ( InfoLogLength > 0 ){
     std::vector<char> FragmentShaderErrorMessage(InfoLogLength+1);
-    glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
+    GLCall(glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]));
     printf("%s\n", &FragmentShaderErrorMessage[0]);
   }
 
@@ -326,26 +352,26 @@ GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path
 
   // Link the program
   printf("Linking program\n");
-  GLuint ProgramID = glCreateProgram();
-  glAttachShader(ProgramID, VertexShaderID);
-  glAttachShader(ProgramID, FragmentShaderID);
-  glLinkProgram(ProgramID);
+  GLCall(GLuint ProgramID = glCreateProgram());
+  GLCall(glAttachShader(ProgramID, VertexShaderID));
+  GLCall(glAttachShader(ProgramID, FragmentShaderID));
+  GLCall(glLinkProgram(ProgramID));
 
   // Check the program
-  glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
-  glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+  GLCall(glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result));
+  GLCall(glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength));
   if ( InfoLogLength > 0 ){
     std::vector<char> ProgramErrorMessage(InfoLogLength+1);
-    glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
+    GLCall(glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]));
     printf("%s\n", &ProgramErrorMessage[0]);
   }
 
   
-  glDetachShader(ProgramID, VertexShaderID);
-  glDetachShader(ProgramID, FragmentShaderID);
+  GLCall(glDetachShader(ProgramID, VertexShaderID));
+  GLCall(glDetachShader(ProgramID, FragmentShaderID));
   
-  glDeleteShader(VertexShaderID);
-  glDeleteShader(FragmentShaderID);
+  GLCall(glDeleteShader(VertexShaderID));
+  GLCall(glDeleteShader(FragmentShaderID));
 
   return ProgramID;
 }
