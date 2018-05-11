@@ -4,7 +4,7 @@ in vec2 uv;
 in float height;
 out vec3 color;
 void main(){
-  //color = texture( myTextureSampler, uv ).rgb;
+  color = texture( myTextureSampler, uv ).rgb;
   //color = vec3(1.0f,1.0f,1.0f);
-  color = vec3(height/20.0f,0.0f,1.0f);
+  //color = vec3(height/10.0f,0.0f,1.0f);
 }

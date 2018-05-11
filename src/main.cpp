@@ -101,7 +101,7 @@ int init(){
 
 int load_models(){
   
-
+  loadTexture("texture/ff.bmp");
   GLfloat** height_map = (GLfloat**) malloc(w*sizeof(GLfloat*));
   for(unsigned int i = 0;i<w;i++){
     height_map[i] = (GLfloat*) malloc(w*sizeof(GLfloat));
@@ -129,7 +129,7 @@ int load_models(){
   //GLfloat step = 0.1f;
   GLuint ind = 0;
   int j;
-  unsigned int tex_span = 10; // nb of squares the texture is mapped to
+  unsigned int tex_span = 6; // nb of squares the texture is mapped to
   float a,b,c;
   for(unsigned int i=0;i<w-1;){
     for(j=0;j<w;j++){
