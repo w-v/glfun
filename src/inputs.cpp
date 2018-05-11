@@ -13,9 +13,9 @@ float deltaTime ;
 double lastTime ;
 
 // position
-glm::vec3 position = glm::vec3( 0, 5, 0 );
+glm::vec3 position = glm::vec3( 0, 10, 0 );
 // horizontal angle : toward -Z
-float horizontalAngle = 3.14f;
+float horizontalAngle = 0;
 // vertical angle : 0, look at the horizon
 float verticalAngle = -M_PI/2;
 // Initial Field of View

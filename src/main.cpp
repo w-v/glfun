@@ -108,24 +108,38 @@ int load_models(){
   glBindVertexArray(VertexArrayID);
 
   GLfloat* g_vertex_buffer_data = (GLfloat*) malloc(nb_vertices*sizeof(GLfloat));
+  GLfloat* uv = (GLfloat*) malloc((nb_vertices/3)*2*sizeof(GLfloat));
   
   // making the grid
   GLfloat step = 1.0f/ (float) w*w;
   //GLfloat step = 0.1f;
   GLuint ind = 0;
+  GLuint ind1 = 0;
   int j;
+  unsigned int tex_span = 10; // nb of squares the texture is mapped to
+  float a,b,c;
   for(unsigned int i=0;i<w-1;){
     for(j=0;j<w;j++){
+      a = (float)(j%tex_span)/(float)tex_span;
+      b = (float)(i%tex_span)/(float)tex_span;
+      c = (float)((i+1)%tex_span)/(float)tex_span;
       put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i],i*scl),&ind);
+      put_vertex2(uv,vec2(a,b),&ind1);
       put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
+      put_vertex2(uv,vec2(a,c),&ind1);
     }
     j--;
     put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
     put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
     i++;
     for(;0<=j;j--){
+      a = (float)(j%tex_span)/(float)tex_span;
+      b = (float)(i%tex_span)/(float)tex_span;
+      c = (float)((i+1)%tex_span)/(float)tex_span;
       put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i],i*scl),&ind);
+      put_vertex2(uv,vec2(a,b),&ind1);
       put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
+      put_vertex2(uv,vec2(a,c),&ind1);
     }
     j++;
     put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
@@ -139,43 +153,6 @@ int load_models(){
 
   loadTexture("texture/ff.bmp");
 
-  GLfloat* uv = (GLfloat*) malloc((nb_vertices/3)*2*sizeof(GLfloat));
-  ind = 0;
-  vec2 uv_coords[4] = {
-    vec2(0.0f,0.0f),
-    vec2(1.0f,0.0f),
-    vec2(0.0f,1.0f),
-    vec2(1.0f,1.0f)
-  };
-  for(unsigned int i = 0;i < nb_vertices/3;i++){
-    put_vertex2(uv,uv_coords[i%4],&ind);
-  }/*
-  float uv[100] = {
-    0.0f, 0.0f,
-    0.1f, 0.0f,
-    0.0f, 0.1f,
-    0.0f, 0.0f,
-    0.1f, 0.0f,
-    0.0f, 0.1f,
-    0.0f, 0.0f,
-    0.1f, 0.0f,
-    0.0f, 0.1f,
-    0.0f, 0.0f,
-    0.1f, 0.0f,
-    0.0f, 0.1f,
-    0.0f, 0.0f,
-    0.1f, 0.0f,
-    0.0f, 0.1f,
-    0.0f, 0.0f,
-    0.1f, 0.0f,
-    0.0f, 0.1f,
-    0.0f, 0.0f,
-    0.1f, 0.0f,
-    0.0f, 0.1f,
-    0.0f, 0.0f,
-    0.1f, 0.0f,
-    0.0f, 0.1f
-  };*/
   
   GLuint uv_buffer;
   glGenBuffers(1,&uv_buffer);
