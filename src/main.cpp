@@ -121,14 +121,13 @@ int load_models(){
   // Use our shader
 
 
-  GLfloat* g_vertex_buffer_data = (GLfloat*) malloc(nb_vertices*sizeof(GLfloat));
-  GLfloat* uv = (GLfloat*) malloc((nb_vertices/3)*2*sizeof(GLfloat));
+  GLfloat* terrain = (GLfloat*) malloc((nb_vertices+(nb_vertices/3)*2)*sizeof(GLfloat));
+  //GLfloat* uv = (GLfloat*) malloc((nb_vertices/3)*2*sizeof(GLfloat));
   
   // making the grid
   GLfloat step = 1.0f/ (float) w*w;
   //GLfloat step = 0.1f;
   GLuint ind = 0;
-  GLuint ind1 = 0;
   int j;
   unsigned int tex_span = 10; // nb of squares the texture is mapped to
   float a,b,c;
@@ -137,85 +136,45 @@ int load_models(){
       a = (float)(j%tex_span)/(float)tex_span;
       b = (float)(i%tex_span)/(float)tex_span;
       c = (float)((i+1)%tex_span)/(float)tex_span;
-      put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i],i*scl),&ind);
-      put_vertex2(uv,vec2(a,b),&ind1);
-      put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
-      put_vertex2(uv,vec2(a,c),&ind1);
+      put_vertex(terrain, vec3(j*scl,height_map[j][i],i*scl),&ind);
+      put_vertex2(terrain,vec2(a,b),&ind);
+      put_vertex(terrain, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
+      put_vertex2(terrain,vec2(a,c),&ind);
     }
     j--;
-    put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
-    put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
+    put_vertex(terrain, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
+    put_vertex2(terrain,vec2(a,b),&ind);
+    put_vertex(terrain, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
+    put_vertex2(terrain,vec2(a,b),&ind);
     i++;
     for(;0<=j;j--){
       a = (float)(j%tex_span)/(float)tex_span;
       b = (float)(i%tex_span)/(float)tex_span;
       c = (float)((i+1)%tex_span)/(float)tex_span;
-      put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i],i*scl),&ind);
-      put_vertex2(uv,vec2(a,b),&ind1);
-      put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
-      put_vertex2(uv,vec2(a,c),&ind1);
+      put_vertex(terrain, vec3(j*scl,height_map[j][i],i*scl),&ind);
+      put_vertex2(terrain,vec2(a,b),&ind);
+      put_vertex(terrain, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
+      put_vertex2(terrain,vec2(a,c),&ind);
     }
     j++;
-    put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
-    put_vertex(g_vertex_buffer_data, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
+    put_vertex(terrain, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
+    put_vertex2(terrain,vec2(a,b),&ind);
+    put_vertex(terrain, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
+    put_vertex2(terrain,vec2(a,b),&ind);
     i++;
   }
-  /*GLuint VertexArrayID;
-  GLCall(glGenVertexArrays(1, &VertexArrayID));
-  GLCall(glBindVertexArray(VertexArrayID));*/
   VertexArray* va = new VertexArray();
   va->bind();
-  // Draw nothing, see you in tutorial 2 !
-  VertexBuffer * vb = new VertexBuffer(g_vertex_buffer_data, nb_vertices);
-  //loadTexture("texture/ff.bmp");
+  VertexBuffer * vb = new VertexBuffer(terrain, nb_vertices+(nb_vertices/3)*2);
   VertexBufferLayout* layout = new VertexBufferLayout;
   layout->push(3,false);
+  layout->push(2,false);
   va->addBuffer(*vb, *layout);
-  
-  /*GLuint vertexbuffer;
-  GLCall(glGenBuffers(1, &vertexbuffer));
-  GLCall(glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer));
-  GLCall(glBufferData(GL_ARRAY_BUFFER, nb_vertices*sizeof(GLfloat), g_vertex_buffer_data, GL_STATIC_DRAW));*/
-
-
-  
- /* GLuint uv_buffer;
-  GLCall(glGenBuffers(1,&uv_buffer));
-  GLCall(glBindBuffer(GL_ARRAY_BUFFER,uv_buffer));
-  GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*(nb_vertices/3)*2, uv, GL_STATIC_DRAW));
-*/
-  // 1rst attribute buffer : vertices
-  /*GLCall(glEnableVertexAttribArray(0));
-  //vb.bind();
-  //GLCall(glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer));
-  glVertexAttribPointer(
-      0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-      3,                  // size
-      GL_FLOAT,           // type
-      GL_FALSE,           // normalized?
-      0,                  // stride
-      (void*)0            // array buffer offset
-      );
-*/
-  // 2nd attribute buffer : vertices
-  /*GLCall(glEnableVertexAttribArray(1));
-  GLCall(glBindBuffer(GL_ARRAY_BUFFER, uv_buffer));
-  glVertexAttribPointer(
-      1,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-      2,                  // size
-      GL_FLOAT,           // type
-      GL_FALSE,           // normalized?
-      0,                  // stride
-      (void*)0            // array buffer offset
-      );
-*/
   for(unsigned int i = 0;i<w;i++){
     free(height_map[i] );
   }
   free(height_map);
-  free(g_vertex_buffer_data);
-  //free(uv);
-
+  free(terrain);
 }
 
 void put_vertex(GLfloat* buffer, const glm::vec3& vertex, GLuint* index){
