@@ -20,6 +20,7 @@
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
 #include "VertexBufferLayout.h"
+#include "Vertex.h"
 
 using namespace glm;
 
@@ -124,7 +125,8 @@ int load_models(){
   GLCall(glEnable(GL_PRIMITIVE_RESTART));
 
 
-  GLfloat* terrain = (GLfloat*) malloc(nb_vertices*(3+2)*sizeof(GLfloat));
+  Vertexu* terrain = (Vertexu*) malloc(nb_vertices*sizeof(Vertexu));
+  //Vertexun* terrain = (Vertexun*) malloc(nb_vertices*sizeof(Vertexun));
   //GLfloat* uv = (GLfloat*) malloc((nb_vertices/3)*2*sizeof(GLfloat));
   unsigned int* indices = (unsigned int*) malloc( nb_indices*sizeof(GLuint) );
   
@@ -139,8 +141,15 @@ int load_models(){
     for(j=0;j<w;j++){
       a = (float)(j%tex_span)/(float)tex_span;
       b = (float)(i%tex_span)/(float)tex_span;
-      put_vertex(terrain, vec3(j*scl,height_map[j][i],i*scl),&ind);
-      put_vertex2(terrain,vec2(a,b),&ind);
+      /*terrain[ind++] = Vertexun(
+          vec3(j*scl,height_map[j][i],i*scl),
+          vec2(a,b),
+          vec3(0.0f,0.0f,0.0f)
+          );*/
+      terrain[ind++] = Vertexu(
+          vec3(j*scl,height_map[j][i],i*scl),
+          vec2(a,b)
+          );
     }
   }
   ind = 0;
@@ -151,6 +160,10 @@ int load_models(){
     }
     indices[ind++] = nb_vertices;
   }
+
+  //for(unsigned int i=0;i<nb_indices;i++){
+    //vec3 v1 = indices[]
+  //}
   GLCall(glPrimitiveRestartIndex(nb_vertices));
 
   VertexArray* va = new VertexArray();
@@ -159,6 +172,7 @@ int load_models(){
   VertexBufferLayout* layout = new VertexBufferLayout;
   layout->push(3,false);
   layout->push(2,false);
+  //layout->push(3,false);
   va->addBuffer(*vb, *layout);
   IndexBuffer* ib = new IndexBuffer(indices, nb_indices);
   ib->bind();

@@ -24,7 +24,7 @@ float initialFoV = 45.0f;
 void compute_mvp(glm::mat4& mvp){
 
 
- float speed = 3.0f; // 3 units / second
+ float speed = 10.0f; // 3 units / second
  float mouseSpeed = 0.05f;  
 
  // Get mouse position

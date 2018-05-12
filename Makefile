@@ -4,8 +4,8 @@ SRC_DIR = src/
 H_DIR = include/
 OBJ_DIR = obj/
 
-main: $(OBJ_DIR)main.o $(OBJ_DIR)inputs.o $(OBJ_DIR)PerlinNoise.o obj/texture.o obj/VertexBufferLayout.o obj/VertexBuffer.o obj/VertexArray.o obj/IndexBuffer.o
-	g++ $(CFLAGS) -o $@ $(OBJ_DIR)main.o $(OBJ_DIR)inputs.o $(OBJ_DIR)PerlinNoise.o obj/texture.o obj/VertexBufferLayout.o obj/VertexBuffer.o obj/VertexArray.o obj/IndexBuffer.o $(LIBS)
+main: $(OBJ_DIR)main.o $(OBJ_DIR)inputs.o $(OBJ_DIR)PerlinNoise.o obj/texture.o obj/VertexBufferLayout.o obj/VertexBuffer.o obj/VertexArray.o obj/IndexBuffer.o obj/Vertex.o
+	g++ $(CFLAGS) -o $@ $(OBJ_DIR)main.o $(OBJ_DIR)inputs.o $(OBJ_DIR)PerlinNoise.o obj/texture.o obj/VertexBufferLayout.o obj/VertexBuffer.o obj/VertexArray.o obj/IndexBuffer.o obj/Vertex.o $(LIBS)
 
 $(OBJ_DIR)main.o: $(SRC_DIR)main.cpp $(H_DIR)main.h
 	g++ $(CFLAGS) -I./$(H_DIR) $(LIBS) -o $@ -c $(SRC_DIR)main.cpp 
@@ -33,6 +33,8 @@ $(OBJ_DIR)VertexArray.o: $(SRC_DIR)VertexArray.cpp $(H_DIR)VertexArray.h
 $(OBJ_DIR)IndexBuffer.o: $(SRC_DIR)IndexBuffer.cpp $(H_DIR)IndexBuffer.h
 	g++ $(CFLAGS) -I./$(H_DIR) $(LIBS) -o obj/IndexBuffer.o -c $(SRC_DIR)IndexBuffer.cpp 
 
+$(OBJ_DIR)Vertex.o: $(SRC_DIR)Vertex.cpp $(H_DIR)Vertex.h
+	g++ $(CFLAGS) -I./$(H_DIR) $(LIBS) -o obj/Vertex.o -c $(SRC_DIR)Vertex.cpp 
 	
 
 	

@@ -3,6 +3,7 @@
 // Input vertex data, different for all executions of this shader.
 layout(location = 0) in vec3 vPos;
 layout(location = 1) in vec2 uv_coords;
+layout(location = 2) in vec3 normals;
 
 out vec2 uv;
 out float height;
