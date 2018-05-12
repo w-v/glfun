@@ -11,7 +11,7 @@ class IndexBuffer {
     IndexBuffer(void * buffer, unsigned int count);
     ~IndexBuffer();
 
-    void bind();
-    void unbind();
+    void bind() const;
+    void unbind() const;
 };
 #endif

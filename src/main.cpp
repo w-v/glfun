@@ -18,6 +18,7 @@
 #include "texture.h"
 #include "VertexArray.h"
 #include "VertexBuffer.h"
+#include "IndexBuffer.h"
 #include "VertexBufferLayout.h"
 
 using namespace glm;
@@ -27,7 +28,8 @@ GLuint programID;
 GLuint MatrixID;
 glm::mat4 mvp;
 GLuint w = 301;
-GLuint nb_vertices = 3*((w-1)*((w)*2+2));
+GLuint nb_vertices = w*w;
+GLuint nb_indices = nb_vertices*2-w; // normally (nb-w)*2 but +w for restart indices
 GLfloat scl = 0.1;
 float t = 0.0f;
 GLuint Texture;
@@ -118,11 +120,13 @@ int load_models(){
   // Accept fragment if it closer to the camera than the former one
   GLCall(glDepthFunc(GL_LESS));
 
-  // Use our shader
+  // Enable restarting triangle strip
+  GLCall(glEnable(GL_PRIMITIVE_RESTART));
 
 
-  GLfloat* terrain = (GLfloat*) malloc((nb_vertices+(nb_vertices/3)*2)*sizeof(GLfloat));
+  GLfloat* terrain = (GLfloat*) malloc(nb_vertices*(3+2)*sizeof(GLfloat));
   //GLfloat* uv = (GLfloat*) malloc((nb_vertices/3)*2*sizeof(GLfloat));
+  unsigned int* indices = (unsigned int*) malloc( nb_indices*sizeof(GLuint) );
   
   // making the grid
   GLfloat step = 1.0f/ (float) w*w;
@@ -131,45 +135,33 @@ int load_models(){
   int j;
   unsigned int tex_span = 6; // nb of squares the texture is mapped to
   float a,b,c;
-  for(unsigned int i=0;i<w-1;){
+  for(unsigned int i=0;i<w;i++){
     for(j=0;j<w;j++){
       a = (float)(j%tex_span)/(float)tex_span;
       b = (float)(i%tex_span)/(float)tex_span;
-      c = (float)((i+1)%tex_span)/(float)tex_span;
       put_vertex(terrain, vec3(j*scl,height_map[j][i],i*scl),&ind);
       put_vertex2(terrain,vec2(a,b),&ind);
-      put_vertex(terrain, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
-      put_vertex2(terrain,vec2(a,c),&ind);
     }
-    j--;
-    put_vertex(terrain, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
-    put_vertex2(terrain,vec2(a,b),&ind);
-    put_vertex(terrain, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
-    put_vertex2(terrain,vec2(a,b),&ind);
-    i++;
-    for(;0<=j;j--){
-      a = (float)(j%tex_span)/(float)tex_span;
-      b = (float)(i%tex_span)/(float)tex_span;
-      c = (float)((i+1)%tex_span)/(float)tex_span;
-      put_vertex(terrain, vec3(j*scl,height_map[j][i],i*scl),&ind);
-      put_vertex2(terrain,vec2(a,b),&ind);
-      put_vertex(terrain, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
-      put_vertex2(terrain,vec2(a,c),&ind);
-    }
-    j++;
-    put_vertex(terrain, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
-    put_vertex2(terrain,vec2(a,b),&ind);
-    put_vertex(terrain, vec3(j*scl,height_map[j][i+1],(i+1)*scl),&ind);
-    put_vertex2(terrain,vec2(a,b),&ind);
-    i++;
   }
+  ind = 0;
+  for(unsigned int i=0;i<w-1;i++){
+    for(j=0;j<w;j++){
+      indices[ind++] = j+w*i;
+      indices[ind++] = j+w*(i+1);
+    }
+    indices[ind++] = nb_vertices;
+  }
+  GLCall(glPrimitiveRestartIndex(nb_vertices));
+
   VertexArray* va = new VertexArray();
   va->bind();
-  VertexBuffer * vb = new VertexBuffer(terrain, nb_vertices+(nb_vertices/3)*2);
+  VertexBuffer * vb = new VertexBuffer(terrain, nb_vertices*(3+2));
   VertexBufferLayout* layout = new VertexBufferLayout;
   layout->push(3,false);
   layout->push(2,false);
   va->addBuffer(*vb, *layout);
+  IndexBuffer* ib = new IndexBuffer(indices, nb_indices);
+  ib->bind();
   for(unsigned int i = 0;i<w;i++){
     free(height_map[i] );
   }
@@ -227,7 +219,8 @@ int main_loop(){
     GLCall(glBindTexture(GL_TEXTURE_2D, Texture));
     GLCall(glUniform1i(TextureID, 0));
     // Draw the triangle !
-    GLCall(glDrawArrays(GL_TRIANGLE_STRIP, 0, nb_vertices)); // Starting from vertex 0; 3 vertices total -> 1 triangle
+    GLCall(glDrawElements(GL_TRIANGLE_STRIP, nb_indices, GL_UNSIGNED_INT, (GLvoid*) 0)); // Starting from vertex 0; 3 vertices total -> 1 triangle
+
     //glDrawArrays(GL_TRIANGLE_STRIP, 0, nb_vertices); // Starting from vertex 0; 3 vertices total -> 1 triangle
     // Swap buffers
     glfwSwapBuffers(window);
