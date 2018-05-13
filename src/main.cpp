@@ -32,10 +32,10 @@ GLuint VID;
 glm::mat4 mvp;
 glm::mat4 v;
 glm::mat4 m;
-GLuint w = 301;
+GLuint w = 100;
 GLuint nb_vertices = w*w;
 GLuint nb_indices = nb_vertices*2-w; // normally (nb-w)*2 but +w for restart indices
-GLfloat scl = 0.1;
+GLfloat scl = 0.5;
 float t = 0.0f;
 GLuint Texture;
 GLuint TextureID; 
@@ -145,8 +145,20 @@ int load_models(){
   float a,b,c;
   for(unsigned int i=0;i<w;i++){
     for(j=0;j<w;j++){
-      a = (float)(j%tex_span)/(float)tex_span;
-      b = (float)(i%tex_span)/(float)tex_span;
+      a=i%tex_span;
+      if(a > tex_span/2)
+        a = (float)(tex_span-a)/(float)tex_span/2;
+      else
+        a = a/(float)tex_span/2;
+
+      b=j%tex_span;
+      if(b > tex_span/2)
+        b = (float)(tex_span-b)/(float)tex_span/2;
+      else
+        b = b/(float)tex_span/2;
+
+      //a = (float)(j%tex_span)/(float)tex_span;
+      //b = (float)(i%tex_span)/(float)tex_span;
       terrain[ind++] = Vertexun(
           vec3(j*scl,height_map[j][i],i*scl),
           vec2(a,b),
@@ -231,13 +243,14 @@ void put_vertex2(GLfloat* buffer, const glm::vec2& vertex, GLuint* index){
 
 void compute_height_map(GLfloat** height_map,float t){
   PerlinNoise p(69); 
-  float ter_scl1 = 0.5;
-  float ter_scl2 = 0.1;
+  float ter_scl = scl;//0.1;
+  float ter_scl1 = 0.3;
+  float ter_scl2 = 0.05;
   for(unsigned int i=0;i<w;i++){
     for(unsigned int j=0;j<w;j++){
       //height_map[i][j] = 0.0f;
       //height_map[i][j] = sin(i*scl)*sin(j*scl);
-      height_map[i][j] = p.noise(i*scl*ter_scl1,j*scl*ter_scl1,0)+p.noise(i*scl*ter_scl2,j*scl*ter_scl2,69)*10;
+      height_map[i][j] = p.noise(i*ter_scl*ter_scl1,j*ter_scl*ter_scl1,0)*0.5+p.noise(i*ter_scl*ter_scl2,j*ter_scl*ter_scl2,69)*10;
     }
   }
 }

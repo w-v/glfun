@@ -9,6 +9,7 @@ out vec2 uv;
 //out float height;
 out vec3 normal;
 out vec3 lightdir;
+//out float cost;
   
 // Values that stay constant for the whole mesh.
 uniform mat4 MVP;
@@ -34,5 +35,10 @@ void main(){
 
   normal = ( V * M * vec4(normals,0)).xyz; 
 
+/*
+  vec3 n = normalize( normal );
+  vec3 l = normalize( lightdir );
+  cost = clamp( dot( n,l ), 0,1 );
+  */
 }
 
