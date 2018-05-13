@@ -145,20 +145,8 @@ int load_models(){
   float a,b,c;
   for(unsigned int i=0;i<w;i++){
     for(j=0;j<w;j++){
-      a=i%tex_span;
-      if(a > tex_span/2)
-        a = (float)(tex_span-a)/(float)tex_span/2;
-      else
-        a = a/(float)tex_span/2;
-
-      b=j%tex_span;
-      if(b > tex_span/2)
-        b = (float)(tex_span-b)/(float)tex_span/2;
-      else
-        b = b/(float)tex_span/2;
-
-      //a = (float)(j%tex_span)/(float)tex_span;
-      //b = (float)(i%tex_span)/(float)tex_span;
+      a = j/(float)tex_span;
+      b = i/(float)tex_span;
       terrain[ind++] = Vertexun(
           vec3(j*scl,height_map[j][i],i*scl),
           vec2(a,b),
