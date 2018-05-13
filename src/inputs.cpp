@@ -21,7 +21,7 @@ float verticalAngle = -M_PI/2;
 // Initial Field of View
 float initialFoV = 45.0f;
 
-void compute_mvp(glm::mat4& mvp){
+void compute_mvp(glm::mat4& mvp, glm::mat4& v, glm::mat4& m){
 
 
  float speed = 10.0f; // 3 units / second
@@ -87,6 +87,8 @@ void compute_mvp(glm::mat4& mvp){
  // Model matrix : an identity matrix (model will be at the origin)
  //glm::mat4 Model = glm::mat4(1.0f);
  glm::mat4 Model = tr * rot * sc;
+ m = Model;
+ v = View;
  // Our ModelViewProjection : multiplication of our 3 matrices
  mvp = Projection * View * Model; // Remember, matrix multiplication is the other way around
 

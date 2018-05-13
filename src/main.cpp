@@ -27,7 +27,11 @@ using namespace glm;
 GLFWwindow* window; 
 GLuint programID;
 GLuint MatrixID;
+GLuint MID;
+GLuint VID;
 glm::mat4 mvp;
+glm::mat4 v;
+glm::mat4 m;
 GLuint w = 301;
 GLuint nb_vertices = w*w;
 GLuint nb_indices = nb_vertices*2-w; // normally (nb-w)*2 but +w for restart indices
@@ -115,6 +119,8 @@ int load_models(){
   // Only during the initialisation
   GLCall(MatrixID = glGetUniformLocation(programID, "MVP"));
   GLCall(TextureID = glGetUniformLocation(programID, "myTextureSampler"));
+  GLCall(VID = glGetUniformLocation(programID, "V"));
+  GLCall(MID = glGetUniformLocation(programID, "M"));
 
   // Enable depth test
   GLCall(glEnable(GL_DEPTH_TEST));
@@ -125,8 +131,8 @@ int load_models(){
   GLCall(glEnable(GL_PRIMITIVE_RESTART));
 
 
-  Vertexu* terrain = (Vertexu*) malloc(nb_vertices*sizeof(Vertexu));
-  //Vertexun* terrain = (Vertexun*) malloc(nb_vertices*sizeof(Vertexun));
+  //Vertexu* terrain = (Vertexu*) malloc(nb_vertices*sizeof(Vertexu));
+  Vertexun* terrain = (Vertexun*) malloc(nb_vertices*sizeof(Vertexun));
   //GLfloat* uv = (GLfloat*) malloc((nb_vertices/3)*2*sizeof(GLfloat));
   unsigned int* indices = (unsigned int*) malloc( nb_indices*sizeof(GLuint) );
   
@@ -141,15 +147,15 @@ int load_models(){
     for(j=0;j<w;j++){
       a = (float)(j%tex_span)/(float)tex_span;
       b = (float)(i%tex_span)/(float)tex_span;
-      /*terrain[ind++] = Vertexun(
+      terrain[ind++] = Vertexun(
           vec3(j*scl,height_map[j][i],i*scl),
           vec2(a,b),
           vec3(0.0f,0.0f,0.0f)
-          );*/
-      terrain[ind++] = Vertexu(
+          );
+      /*terrain[ind++] = Vertexu(
           vec3(j*scl,height_map[j][i],i*scl),
           vec2(a,b)
-          );
+          );*/
     }
   }
   ind = 0;
@@ -161,17 +167,44 @@ int load_models(){
     indices[ind++] = nb_vertices;
   }
 
-  //for(unsigned int i=0;i<nb_indices;i++){
-    //vec3 v1 = indices[]
-  //}
+  unsigned int i1 = indices[0];
+  unsigned int i2 = indices[1];
+  unsigned int i3;
+  vec3 triangle_normal;
+  bool order = true;
+  for(unsigned int i=2;i<nb_indices;i++){
+    if(indices[i] == nb_vertices){
+      // reached end of line (index == restart index)
+      i1 = indices[++i];
+      i2 = indices[++i];
+      i++;
+      order = true;
+    }
+    i3 = indices[i];
+    // compute cross product in right order
+    if(order)
+      triangle_normal = normalize(cross(terrain[i2].pos-terrain[i1].pos,terrain[i3].pos-terrain[i1].pos));
+    else
+      triangle_normal = normalize(cross(terrain[i2].pos-terrain[i3].pos,terrain[i1].pos-terrain[i3].pos));
+    terrain[i1].normal += triangle_normal;
+    terrain[i2].normal += triangle_normal;
+    terrain[i3].normal += triangle_normal;
+    i1 = i2;
+    i2 = i3;
+    order = !order;
+  }
+  for(unsigned int i = 0; i<nb_vertices;i++){
+    terrain[i].normal = normalize(terrain[i].normal);
+  } 
   GLCall(glPrimitiveRestartIndex(nb_vertices));
 
   VertexArray* va = new VertexArray();
   va->bind();
-  VertexBuffer * vb = new VertexBuffer(terrain, nb_vertices*(3+2));
+  VertexBuffer * vb = new VertexBuffer(terrain, nb_vertices*sizeof(Vertexun));
   VertexBufferLayout* layout = new VertexBufferLayout;
   layout->push(3,false);
   layout->push(2,false);
+  layout->push(3,true);
   //layout->push(3,false);
   va->addBuffer(*vb, *layout);
   IndexBuffer* ib = new IndexBuffer(indices, nb_indices);
@@ -180,7 +213,7 @@ int load_models(){
     free(height_map[i] );
   }
   free(height_map);
-  free(terrain);
+  //free(terrain);
 }
 
 void put_vertex(GLfloat* buffer, const glm::vec3& vertex, GLuint* index){
@@ -202,6 +235,7 @@ void compute_height_map(GLfloat** height_map,float t){
   float ter_scl2 = 0.1;
   for(unsigned int i=0;i<w;i++){
     for(unsigned int j=0;j<w;j++){
+      //height_map[i][j] = 0.0f;
       //height_map[i][j] = sin(i*scl)*sin(j*scl);
       height_map[i][j] = p.noise(i*scl*ter_scl1,j*scl*ter_scl1,0)+p.noise(i*scl*ter_scl2,j*scl*ter_scl2,69)*10;
     }
@@ -214,10 +248,12 @@ int main_loop(){
     GLCall(glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
     t += 0.1f;
-    compute_mvp(mvp);
+    compute_mvp(mvp,v,m);
     // Send our transformation to the currently bound shader, in the "MVP" uniform
     // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
     GLCall(glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]));
+    GLCall(glUniformMatrix4fv(VID, 1, GL_FALSE, &v[0][0]));
+    GLCall(glUniformMatrix4fv(MID, 1, GL_FALSE, &m[0][0]));
 
     if (glfwGetKey(window, GLFW_KEY_W ) == GLFW_PRESS){
       fill=!fill;

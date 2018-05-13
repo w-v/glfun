@@ -7,7 +7,7 @@ VertexBuffer::VertexBuffer(void * b, unsigned int s)
   : buffer(b), size(s){
   GLCall(glGenBuffers(1, &id ));
   bind();
-  GLCall(glBufferData(GL_ARRAY_BUFFER, s*sizeof(GLfloat), b, GL_STATIC_DRAW));
+  GLCall(glBufferData(GL_ARRAY_BUFFER, s, b, GL_STATIC_DRAW));
 }
 
 VertexBuffer::~VertexBuffer(){

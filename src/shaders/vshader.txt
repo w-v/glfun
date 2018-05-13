@@ -6,16 +6,33 @@ layout(location = 1) in vec2 uv_coords;
 layout(location = 2) in vec3 normals;
 
 out vec2 uv;
-out float height;
+//out float height;
+out vec3 normal;
+out vec3 lightdir;
   
 // Values that stay constant for the whole mesh.
 uniform mat4 MVP;
+uniform mat4 V;
+uniform mat4 M;
   
 void main(){
   // Output position of the vertex, in clip space : MVP * position
   gl_Position =  MVP * vec4(vPos,1);
   uv = uv_coords;
   //uv = vec2(1.0f,0.0f);
-  height = vPos.y;
+  //height = vPos.y;
+  //normal = normals;
+
+  vec3 LightPosition_worldspace = vec3(0.0f,50.0f,0.0f);
+  vec3 Position_worldspace = (M * vec4(vPos,1)).xyz;
+
+  vec3 vertexPosition_cameraspace = ( V * M * vec4(vPos,1)).xyz;
+  vec3 EyeDirection_cameraspace = vec3(0,0,0) - vertexPosition_cameraspace;
+
+  vec3 LightPosition_cameraspace = ( V * vec4(LightPosition_worldspace,1)).xyz;
+  lightdir = LightPosition_cameraspace + EyeDirection_cameraspace;
+
+  normal = ( V * M * vec4(normals,0)).xyz; 
+
 }
 
