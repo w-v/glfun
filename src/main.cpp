@@ -146,15 +146,17 @@ int load_models(){
   unsigned int* indices = (unsigned int*) malloc( nb_indices*sizeof(GLuint) );
 
   unsigned int ind = 0;
-  float ray,a,b;
+  float ray,a,b,c;
   terrain[ind++] = Vertexun(vec3(0.0f,-1.0f,0.0f),vec2(),vec3());
   for(unsigned int i=1;i<w-1;i++){
     b = (float) i / (float) w;
     ray = cos(-0.5*M_PI+M_PI*b);
     for(unsigned int j=0;j<w;j++){
       a = (float) j / (float) w;
+      c = height_map[i][j] / 10.0f + 1.0f;
       terrain[ind++] = Vertexun(
-          vec3(ray*cos(2*M_PI*a),sin(-0.5*M_PI+M_PI*b),ray*sin(2*M_PI*a)),
+          //vec3(ray*cos(2*M_PI*a)*a,sin(-0.5*M_PI+M_PI*b)*a,ray*sin(2*M_PI*a)*a),
+          vec3(ray*cos(2*M_PI*a)*c,sin(-0.5*M_PI+M_PI*b)*c,ray*sin(2*M_PI*a)*c),
           vec2(),
           vec3()
           );
@@ -200,7 +202,7 @@ int load_models(){
     }
     indices[ind++] = nb_vertices;
   }
-
+*/
   unsigned int i1 = indices[0];
   unsigned int i2 = indices[1];
   unsigned int i3;
@@ -229,7 +231,7 @@ int load_models(){
   }
   for(unsigned int i = 0; i<nb_vertices;i++){
     terrain[i].normal = normalize(terrain[i].normal);
-  } */
+  }
   GLCall(glPrimitiveRestartIndex(nb_vertices));
 
   va = new VertexArray();
@@ -264,16 +266,19 @@ void put_vertex2(GLfloat* buffer, const glm::vec2& vertex, GLuint* index){
 }
 
 void compute_height_map(GLfloat** height_map,float t){
-  PerlinNoise p(69); 
-/*  float ter_scl = 1;
+  PerlinNoise p(69097); 
+  float ter_scl = 1;
   float ter_scl1 = 0.2;
-  float ter_scl2 = 0.04;*/
+  float ter_scl2 = 0.04;
+  //float ter_scl1 = 0.2;
+  //float ter_scl2 = 0.04;
  // float ter_scl1 = 0.3;
  // float ter_scl2 = 0.08;
   for(unsigned int i=0;i<w;i++){
     for(unsigned int j=0;j<w;j++){
       //height_map[i][j] = 0.0f;
-      height_map[i][j] = sin(i*scl)*sin(j*scl);
+      //height_map[i][j] = sin(i*ter_scl)*sin(j*ter_scl);
+      height_map[i][j] = p.noise(i*ter_scl*ter_scl1,j*ter_scl*ter_scl1,0)*0.3+p.noise(i*ter_scl*ter_scl2,j*ter_scl*ter_scl2,69)*6;
       //height_map[i][j] = p.noise(i*ter_scl*ter_scl1,j*ter_scl*ter_scl1,0)*0.3+p.noise(i*ter_scl*ter_scl2,j*ter_scl*ter_scl2,69)*8;
       //height_map[i][j] = p.noise(i*ter_scl*ter_scl1,j*ter_scl*ter_scl1,0)*2+p.noise(i*ter_scl*ter_scl2,j*ter_scl*ter_scl2,6969)*15;
     }

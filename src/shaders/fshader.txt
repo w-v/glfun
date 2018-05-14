@@ -9,12 +9,13 @@ in vec3 lightdir;
 out vec3 color;
 
 void main(){
-  /*vec3 difcolor = texture( myTextureSampler, uv ).rgb;
+  //vec3 difcolor = texture( myTextureSampler, uv ).rgb;
   //color = vec3(uv,0.0f);
   //float h = height/10.0f;
   //vec3 green = vec3(0.1f,0.5f,0.1f);
   //color = green+h*vec3(0.2f,-0.4f,0.2f);
-  vec3 green = vec3(0.2f,0.4f,0.2f);
+  //vec3 green = vec3(0.2f,0.4f,0.2f);
+  vec3 blue = vec3(0.2f,0.2f,0.8f);
 
   //float h = height/10.0f - mod((height/10.0f), (1.0f/15.0f));
   //color = vec3(0.2f,0.2f,h);
@@ -23,8 +24,9 @@ void main(){
   vec3 l = normalize( lightdir );
   float cost = clamp( dot( n,l ), 0,1 );
   //color = vec3(0.05f,0.05f,0.05f) + green * cost;
-  color = vec3(0.05f,0.05f,0.05f) + difcolor * cost;
-  //color = vec3(0.05f,0.05f,0.05f) + green * cost;
-  */
-  color = vec3(0.2f,0.2f,0.8f);
+  //color = vec3(0.05f,0.05f,0.05f) + difcolor * cost;
+  float ambient = 0.1f;
+  color = vec3(ambient) + blue * cost;
+  
+  //color = vec3(0.2f,0.2f,0.8f);
 }
