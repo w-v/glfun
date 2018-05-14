@@ -19,7 +19,7 @@ uniform mat4 M;
 void main(){
   // Output position of the vertex, in clip space : MVP * position
   gl_Position =  MVP * vec4(vPos,1);
-  uv = uv_coords;
+/*  uv = uv_coords;
   //uv = vec2(1.0f,0.0f);
   //height = vPos.y;
   //normal = normals;
@@ -35,7 +35,7 @@ void main(){
 
   normal = ( V * M * vec4(normals,0)).xyz; 
 
-/*
+
   vec3 n = normalize( normal );
   vec3 l = normalize( lightdir );
   cost = clamp( dot( n,l ), 0,1 );

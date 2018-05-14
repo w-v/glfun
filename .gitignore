@@ -4,3 +4,4 @@ fails/
 texture/
 tut/
 .v
+include/gli/

@@ -32,14 +32,22 @@ GLuint VID;
 glm::mat4 mvp;
 glm::mat4 v;
 glm::mat4 m;
+//GLuint w = 51;
 GLuint w = 100;
-GLuint nb_vertices = w*w;
-GLuint nb_indices = nb_vertices*2-w; // normally (nb-w)*2 but +w for restart indices
-GLfloat scl = 0.5;
+/*GLuint nb_vertices = w*w;
+GLuint nb_indices = nb_vertices*2-w; // normally (nb-w)*2 but +w for restart indices*/
+GLuint nb_vertices = w*(w-2)+2;  // single vertex at each pole;
+GLuint nb_indices = 2*w*w-w + w;
+                              //^ dont forget f** restart indices
+
+GLfloat scl = 1;
 float t = 0.0f;
 GLuint Texture;
 GLuint TextureID; 
 bool fill = true;
+IndexBuffer* ib;
+VertexArray* va;
+VertexBuffer * vb;
 
 int main(){
   init();
@@ -70,6 +78,7 @@ void loadTexture(const char * imagepath){
 
   GLCall(glBindTexture(GL_TEXTURE_2D, Texture));
   Texture = loadBMP_custom(imagepath);
+  //Texture = loadDDS(imagepath);
   if(Texture == 0)
     printf("could not load texture");
 }
@@ -135,7 +144,36 @@ int load_models(){
   Vertexun* terrain = (Vertexun*) malloc(nb_vertices*sizeof(Vertexun));
   //GLfloat* uv = (GLfloat*) malloc((nb_vertices/3)*2*sizeof(GLfloat));
   unsigned int* indices = (unsigned int*) malloc( nb_indices*sizeof(GLuint) );
+
+  unsigned int ind = 0;
+  float ray,a,b;
+  terrain[ind++] = Vertexun(vec3(0.0f,-1.0f,0.0f),vec2(),vec3());
+  for(unsigned int i=1;i<w-1;i++){
+    b = (float) i / (float) w;
+    ray = cos(-0.5*M_PI+M_PI*b);
+    for(unsigned int j=0;j<w;j++){
+      a = (float) j / (float) w;
+      terrain[ind++] = Vertexun(
+          vec3(ray*cos(2*M_PI*a),sin(-0.5*M_PI+M_PI*b),ray*sin(2*M_PI*a)),
+          vec2(),
+          vec3()
+          );
+    }
+
+  }
+  terrain[ind++] = Vertexun(vec3(0.0f,1.0f,0.0f),vec2(),vec3());
   
+  ind = 0;
+  for(unsigned int i=0;i<w;i++){
+    indices[ind++] = 0;
+    for(unsigned int j=0;j<w-2;j++){
+      indices[ind++] = i+1+w*j;
+      indices[ind++] = ((i+1)%w)+w*j+1;
+    }
+    indices[ind++] = nb_vertices-1;
+    indices[ind++] = nb_vertices;
+  }
+  /*
   // making the grid
   GLfloat step = 1.0f/ (float) w*w;
   //GLfloat step = 0.1f;
@@ -152,10 +190,6 @@ int load_models(){
           vec2(a,b),
           vec3(0.0f,0.0f,0.0f)
           );
-      /*terrain[ind++] = Vertexu(
-          vec3(j*scl,height_map[j][i],i*scl),
-          vec2(a,b)
-          );*/
     }
   }
   ind = 0;
@@ -195,19 +229,19 @@ int load_models(){
   }
   for(unsigned int i = 0; i<nb_vertices;i++){
     terrain[i].normal = normalize(terrain[i].normal);
-  } 
+  } */
   GLCall(glPrimitiveRestartIndex(nb_vertices));
 
-  VertexArray* va = new VertexArray();
+  va = new VertexArray();
   va->bind();
-  VertexBuffer * vb = new VertexBuffer(terrain, nb_vertices*sizeof(Vertexun));
+  vb = new VertexBuffer(terrain, nb_vertices*sizeof(Vertexun));
   VertexBufferLayout* layout = new VertexBufferLayout;
   layout->push(3,false);
   layout->push(2,false);
   layout->push(3,true);
   //layout->push(3,false);
   va->addBuffer(*vb, *layout);
-  IndexBuffer* ib = new IndexBuffer(indices, nb_indices);
+  ib = new IndexBuffer(indices, nb_indices);
   ib->bind();
   for(unsigned int i = 0;i<w;i++){
     free(height_map[i] );
@@ -231,14 +265,17 @@ void put_vertex2(GLfloat* buffer, const glm::vec2& vertex, GLuint* index){
 
 void compute_height_map(GLfloat** height_map,float t){
   PerlinNoise p(69); 
-  float ter_scl = scl;//0.1;
-  float ter_scl1 = 0.3;
-  float ter_scl2 = 0.05;
+/*  float ter_scl = 1;
+  float ter_scl1 = 0.2;
+  float ter_scl2 = 0.04;*/
+ // float ter_scl1 = 0.3;
+ // float ter_scl2 = 0.08;
   for(unsigned int i=0;i<w;i++){
     for(unsigned int j=0;j<w;j++){
       //height_map[i][j] = 0.0f;
-      //height_map[i][j] = sin(i*scl)*sin(j*scl);
-      height_map[i][j] = p.noise(i*ter_scl*ter_scl1,j*ter_scl*ter_scl1,0)*0.5+p.noise(i*ter_scl*ter_scl2,j*ter_scl*ter_scl2,69)*10;
+      height_map[i][j] = sin(i*scl)*sin(j*scl);
+      //height_map[i][j] = p.noise(i*ter_scl*ter_scl1,j*ter_scl*ter_scl1,0)*0.3+p.noise(i*ter_scl*ter_scl2,j*ter_scl*ter_scl2,69)*8;
+      //height_map[i][j] = p.noise(i*ter_scl*ter_scl1,j*ter_scl*ter_scl1,0)*2+p.noise(i*ter_scl*ter_scl2,j*ter_scl*ter_scl2,6969)*15;
     }
   }
 }

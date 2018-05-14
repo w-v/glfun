@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <glm/glm.hpp>
+
 #include <GL/glew.h>
 
 #include <GLFW/glfw3.h>
@@ -141,6 +143,7 @@ GLuint loadDDS(const char * imagepath){
 	char filecode[4]; 
 	fread(filecode, 1, 4, fp); 
 	if (strncmp(filecode, "DDS ", 4) != 0) { 
+		printf("not a DDS file \n");
 		fclose(fp); 
 		return 0; 
 	}
@@ -179,6 +182,7 @@ GLuint loadDDS(const char * imagepath){
 		break; 
 	default: 
 		free(buffer); 
+		printf("not compressed using DXT1 3 or 5 \n");
 		return 0; 
 	}
 
@@ -215,4 +219,8 @@ GLuint loadDDS(const char * imagepath){
 	return textureID;
 
 
+
 }
+
+
+
