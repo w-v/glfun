@@ -11,6 +11,7 @@
 double currentTime ;
 float deltaTime ;
 double lastTime ;
+bool mouseon;
 
 // position
 glm::vec3 position = glm::vec3( -10, 26, -10 );
@@ -27,14 +28,23 @@ void compute_mvp(glm::mat4& mvp, glm::mat4& v, glm::mat4& m){
  float speed = 10.0f; // 3 units / second
  float mouseSpeed = 0.05f;  
 
+ if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS){
+   mouseon =true;
+ }
+ if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS){
+   mouseon = false;
+ }
+ if(mouseon){
+
  // Get mouse position
- double xpos, ypos;
- glfwGetCursorPos(window, &xpos, &ypos);
- glfwSetCursorPos(window, 1024/2, 768/2);
+   double xpos, ypos;
+   glfwGetCursorPos(window, &xpos, &ypos);
+   glfwSetCursorPos(window, 1024/2, 768/2);
 
  // Compute new orientation
- horizontalAngle += mouseSpeed * deltaTime * float(1024/2 - xpos );
- verticalAngle   += mouseSpeed * deltaTime * float( 768/2 - ypos );
+   horizontalAngle += mouseSpeed * deltaTime * float(1024/2 - xpos );
+   verticalAngle   += mouseSpeed * deltaTime * float( 768/2 - ypos );
+ }
 
  glm::vec3 direction(
      cos(verticalAngle) * sin(horizontalAngle),

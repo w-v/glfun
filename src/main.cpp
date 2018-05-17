@@ -11,9 +11,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 #include <math.h>
+#include <iostream>
 
 #include "main.h"
 #include "inputs.h"
+#include "FastNoise.h"
 #include "PerlinNoise.h"
 #include "texture.h"
 #include "VertexArray.h"
@@ -21,6 +23,9 @@
 #include "IndexBuffer.h"
 #include "VertexBufferLayout.h"
 #include "Vertex.h"
+
+#include "vendor/imgui/imgui.h"
+#include "vendor/imgui/imgui_impl_glfw_gl3.h"
 
 using namespace glm;
 
@@ -32,22 +37,56 @@ GLuint VID;
 glm::mat4 mvp;
 glm::mat4 v;
 glm::mat4 m;
-GLuint w = 100;
+GLuint w = 1000;
 GLuint nb_vertices = w*w;
 GLuint nb_indices = nb_vertices*2-w; // normally (nb-w)*2 but +w for restart indices
-GLfloat scl = 0.5;
+GLfloat scl = 0.1f;
 float t = 0.0f;
 GLuint Texture;
 GLuint TextureID; 
 bool fill = true;
+
+//global variables for debuging window
+int nbOctave = 5;
+int tempOctave = nbOctave;
+float zoom = 5.0f;
+float tempzoom = zoom;
+int neg = 1;
+int tempneg = neg;
+int seed = 15;
+int tempseed = seed;
+float lacunarity = 2.0f;
+float templacunarity = lacunarity;
+float persistence = 0.5f; 
+float temppersistence = persistence;
+float flatcoef = 5.0f;
+float tempflatcoef = flatcoef;
+float modfreq = 0.01;
+float tempmodfreq = modfreq;
+Vertexun* terrain ;
+//GLfloat* uv = (GLfloat*) malloc((nb_vertices/3)*2*sizeof(GLfloat));
+unsigned int* indices ;
+GLfloat**  height_map;
+VertexArray* va;
+VertexBuffer * vb;
+VertexBufferLayout* layout;
+IndexBuffer* ib;
 
 int main(){
   init();
 
   programID = LoadShaders( "src/shaders/vshader.txt", "src/shaders/fshader.txt" );
   GLCall(glUseProgram(programID));
+
+  init_load_models();
   load_models();
   main_loop();
+  for(unsigned int i = 0;i<w;i++){
+    free(height_map[i] );
+  }
+  free(height_map);
+  free(terrain);
+  free(indices);
 
 }
 
@@ -88,7 +127,7 @@ int init(){
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // We don't want the old OpenGL 
 
   // Open a window and create its OpenGL context
-  window = glfwCreateWindow( 1024, 768, "Tutorial 01", NULL, NULL);
+  window = glfwCreateWindow( 1920, 1080, "Tutorial 01", NULL, NULL);
   if( window == NULL ){
     fprintf( stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n" );
     GLCall(glfwTerminate());
@@ -106,15 +145,13 @@ int init(){
 
 }
 
-int load_models(){
-  
+void init_load_models(){
   loadTexture("texture/ff.bmp");
-  GLfloat** height_map = (GLfloat**) malloc(w*sizeof(GLfloat*));
+  height_map = (GLfloat**) malloc(w*sizeof(GLfloat*));
   for(unsigned int i = 0;i<w;i++){
     height_map[i] = (GLfloat*) malloc(w*sizeof(GLfloat));
   }
 
-  compute_height_map(height_map,t);
   // Get a handle for our "MVP" uniform
   // Only during the initialisation
   GLCall(MatrixID = glGetUniformLocation(programID, "MVP"));
@@ -132,10 +169,27 @@ int load_models(){
 
 
   //Vertexu* terrain = (Vertexu*) malloc(nb_vertices*sizeof(Vertexu));
-  Vertexun* terrain = (Vertexun*) malloc(nb_vertices*sizeof(Vertexun));
+  terrain = (Vertexun*) malloc(nb_vertices*sizeof(Vertexun));
   //GLfloat* uv = (GLfloat*) malloc((nb_vertices/3)*2*sizeof(GLfloat));
-  unsigned int* indices = (unsigned int*) malloc( nb_indices*sizeof(GLuint) );
+  indices = (unsigned int*) malloc( nb_indices*sizeof(GLuint) );
+  load_models();
+  va = new VertexArray();
+  va->bind();
+  vb = new VertexBuffer(terrain, nb_vertices*sizeof(Vertexun));
+  layout = new VertexBufferLayout;
+  layout->push(3,false);
+  layout->push(2,false);
+  layout->push(3,true);
+  //layout->push(3,false);
+  va->addBuffer(*vb, *layout);
+  ib = new IndexBuffer(indices, nb_indices);
+  ib->bind();
+  vb->bind();
+
+}
+int load_models(){
   
+  compute_height_map(height_map,t);
   // making the grid
   GLfloat step = 1.0f/ (float) w*w;
   //GLfloat step = 0.1f;
@@ -198,22 +252,6 @@ int load_models(){
   } 
   GLCall(glPrimitiveRestartIndex(nb_vertices));
 
-  VertexArray* va = new VertexArray();
-  va->bind();
-  VertexBuffer * vb = new VertexBuffer(terrain, nb_vertices*sizeof(Vertexun));
-  VertexBufferLayout* layout = new VertexBufferLayout;
-  layout->push(3,false);
-  layout->push(2,false);
-  layout->push(3,true);
-  //layout->push(3,false);
-  va->addBuffer(*vb, *layout);
-  IndexBuffer* ib = new IndexBuffer(indices, nb_indices);
-  ib->bind();
-  for(unsigned int i = 0;i<w;i++){
-    free(height_map[i] );
-  }
-  free(height_map);
-  //free(terrain);
 }
 
 void put_vertex(GLfloat* buffer, const glm::vec3& vertex, GLuint* index){
@@ -230,23 +268,58 @@ void put_vertex2(GLfloat* buffer, const glm::vec2& vertex, GLuint* index){
 }
 
 void compute_height_map(GLfloat** height_map,float t){
-  PerlinNoise p(69); 
-  float ter_scl = scl;//0.1;
-  float ter_scl1 = 0.3;
-  float ter_scl2 = 0.05;
+
+  FastNoise* myNoise = (FastNoise*) malloc(nbOctave*sizeof(FastNoise));
+  FastNoise valueNoise;
+  FastNoise cellular(seed);
+  cellular.SetNoiseType(FastNoise::Perlin); // Set the desired noise type
+  cellular.SetFrequency( modfreq);
+  valueNoise.SetNoiseType(FastNoise::CubicFractal); // Set the desired noise type
+  for(unsigned int k=0;k<nbOctave;k++){
+    myNoise[k] = FastNoise(seed);
+    myNoise[k].SetNoiseType(FastNoise::Simplex); // Set the desired noise type
+    myNoise[k].SetFrequency(pow(lacunarity, k) * 0.01f * (1.0f/zoom));
+  }
+
+  float a,b;
   for(unsigned int i=0;i<w;i++){
     for(unsigned int j=0;j<w;j++){
-      //height_map[i][j] = 0.0f;
-      //height_map[i][j] = sin(i*scl)*sin(j*scl);
-      height_map[i][j] = p.noise(i*ter_scl*ter_scl1,j*ter_scl*ter_scl1,0)*0.5+p.noise(i*ter_scl*ter_scl2,j*ter_scl*ter_scl2,69)*10;
+      height_map[i][j] = 0;
+      for(unsigned int k=0;k<nbOctave;k++){
+        a = cellular.GetNoise(i,j);
+        myNoise[k].SetFrequency(pow(a*lacunarity, k) * 0.01f * (1.0f/zoom));
+        height_map[i][j] += myNoise[k].GetNoise(i,j) * pow(persistence, k); 
+      }
+      /*if (height_map[i][j] < -0.75f)
+        height_map[i][j] =valueNoise.GetNoise(i,j) ;
+      else if ((height_map[i][j] < -0.375f) && (height_map[i][j] >= -0.75f)){
+        height_map[i][j] *= -1.0f;
+        height_map[i][j] += (-0.75f); 
+      }*/
+      if (height_map[i][j] < 0)
+        height_map[i][j] *= flatcoef;
+      else
+        height_map[i][j] *= zoom;
     }
   }
+  free(myNoise);
 }
 
 int main_loop(){
+
+  ImGui::CreateContext();
+  ImGui_ImplGlfwGL3_Init(window, true);
+  ImGui::StyleColorsDark();
+
+  bool show_demo_window = true;
+  bool show_another_window = false;
+  ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
   do{
     // Clear the screen. It's not mentioned before Tutorial 02, but it can cause flickering, so it's there nonetheless.
     GLCall(glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+
+    ImGui_ImplGlfwGL3_NewFrame();
 
     t += 0.1f;
     compute_mvp(mvp,v,m);
@@ -271,6 +344,57 @@ int main_loop(){
     GLCall(glUniform1i(TextureID, 0));
     // Draw the triangle !
     GLCall(glDrawElements(GL_TRIANGLE_STRIP, nb_indices, GL_UNSIGNED_INT, (GLvoid*) 0)); // Starting from vertex 0; 3 vertices total -> 1 triangle
+
+    if ((tempOctave != nbOctave) || (tempzoom != zoom) || (tempneg != neg) || (temppersistence != persistence)||
+        (tempseed != seed) || (tempmodfreq != modfreq) ||(templacunarity != lacunarity) || (tempflatcoef != flatcoef)){
+      nbOctave = tempOctave;
+      if (tempneg != neg)
+        tempzoom = tempzoom * (- 1);
+      zoom = tempzoom;
+      neg = tempneg;
+      seed = tempseed;
+      lacunarity = templacunarity;
+      persistence = temppersistence;
+      flatcoef = tempflatcoef;
+      modfreq = tempmodfreq;
+      load_models();
+      ib->update();
+      vb->update();
+    }
+    {
+      ImGui::SliderInt("nbOctave", &tempOctave, 1, 10);
+      if (((tempzoom > 0.5f) && (tempzoom < 9.5f)) ||
+          ((tempzoom < -0.5f) && (tempzoom > -9.5f)))
+        ImGui::SliderFloat("zoom_precision", &tempzoom, tempzoom - 0.5f, tempzoom + 0.5f);
+      else if ((tempzoom <= 0.5f) && (tempzoom >= 0.0f))
+        ImGui::SliderFloat("zoom_precision", &tempzoom, 0.0f, tempzoom + 0.5f);
+      else if ((tempzoom >= -0.5f) && (tempzoom <= 0.0f))
+        ImGui::SliderFloat("zoom_precision", &tempzoom, tempzoom - 0.5f, 0.0f);
+      else if (tempzoom >= 9.5f)
+        ImGui::SliderFloat("zoom_precision", &tempzoom, tempzoom - 0.5f, 10.0f);
+      else if (tempzoom <= -9.5f)
+        ImGui::SliderFloat("zoom_precision", &tempzoom, -10.0f, tempzoom + 0.5f);
+      if (neg == 1)
+        ImGui::SliderFloat("zoom", &tempzoom, 0.0f, 10.0f);
+      else
+        ImGui::SliderFloat("zoom", &tempzoom, -10.0f, 0.0f);      
+      ImGui::SliderInt("0 is <0, 1 is >0", &tempneg, 0, 1);
+      ImGui::SliderInt("seed", &tempseed, tempseed - 15, tempseed + 15);
+      ImGui::SliderFloat("lacunarity", &templacunarity, 1.0f, 10.0f);      
+      ImGui::SliderFloat("persistence", &temppersistence, -1.0f, 1.0f);      
+      ImGui::SliderFloat("flatcoef", &tempflatcoef, 0.0f, 5.0f);      
+      ImGui::SliderFloat("mod freq", &tempmodfreq, 0.0f, 0.1f);
+      ImGui::Text("Combined persistence changement with");
+      ImGui::Text("lacunarity changement to have fun");
+      ImGui::Text("");
+      ImGui::Text("Press SPACE while you need to move");
+      ImGui::Text("the camera");
+      ImGui::Text("");
+      ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    }
+    
+    ImGui::Render();
+    ImGui_ImplGlfwGL3_RenderDrawData(ImGui::GetDrawData());
 
     //glDrawArrays(GL_TRIANGLE_STRIP, 0, nb_vertices); // Starting from vertex 0; 3 vertices total -> 1 triangle
     // Swap buffers
