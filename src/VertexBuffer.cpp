@@ -1,3 +1,5 @@
+
+#include <stdio.h>
 #include <GL/glew.h>
 #include "VertexBuffer.h"
 #include "main.h"
@@ -15,6 +17,12 @@ VertexBuffer::~VertexBuffer(){
 }
 void VertexBuffer::bind() const{
   GLCall(glBindBuffer(GL_ARRAY_BUFFER,id));
+}
+
+void VertexBuffer::update() const{
+//  printf("%d\n",size);
+  bind();
+  GLCall(glBufferSubData(GL_ARRAY_BUFFER, 0, size, this->buffer));
 }
 
 void VertexBuffer::unbind() {

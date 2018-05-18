@@ -19,3 +19,8 @@ void IndexBuffer::bind() const{
 void IndexBuffer::unbind() const{
   glBindBuffer(GL_ARRAY_BUFFER,0);
 }
+
+void IndexBuffer::update() const{
+  bind();
+  glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, count*sizeof(unsigned int), buffer);
+}

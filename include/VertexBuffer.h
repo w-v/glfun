@@ -13,5 +13,6 @@ class VertexBuffer {
 
     void bind() const;
     void unbind();
+    void update() const;
 };
 #endif

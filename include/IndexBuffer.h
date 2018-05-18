@@ -13,5 +13,6 @@ class IndexBuffer {
 
     void bind() const;
     void unbind() const;
+    void update() const;
 };
 #endif
