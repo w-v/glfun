@@ -37,7 +37,7 @@ GLuint VID;
 glm::mat4 mvp;
 glm::mat4 v;
 glm::mat4 m;
-GLuint w = 1000;
+GLuint w = 2000;
 GLuint nb_vertices = w*w;
 GLuint nb_indices = nb_vertices*2-w; // normally (nb-w)*2 but +w for restart indices
 GLfloat scl = 0.1f;
@@ -205,7 +205,7 @@ int load_models(){
       a = j/(float)tex_span;
       b = i/(float)tex_span;
       terrain[ind++] = Vertexun(
-          vec3(j*scl,height_map[j][i],i*scl),
+          vec3(j*scl*6,height_map[j][i]*6,i*scl*6),
           vec2(a,b),
           vec3(0.0f,0.0f,0.0f)
           );

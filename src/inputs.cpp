@@ -25,7 +25,7 @@ float initialFoV = 45.0f;
 void compute_mvp(glm::mat4& mvp, glm::mat4& v, glm::mat4& m){
 
 
- float speed = 10.0f; // 3 units / second
+ float speed = 4.0f; // 3 units / second
  float mouseSpeed = 0.05f;  
 
  if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS){
@@ -82,7 +82,7 @@ void compute_mvp(glm::mat4& mvp, glm::mat4& v, glm::mat4& m){
  int height = 3;
  GLfloat rotation = 0;
 
- glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
+ glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 1000.0f);
 
  glm::mat4 View = glm::lookAt(
      position,
