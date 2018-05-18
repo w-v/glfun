@@ -63,6 +63,9 @@ float flatcoef = 5.0f;
 float tempflatcoef = flatcoef;
 float modfreq = 0.01;
 float tempmodfreq = modfreq;
+int choosePerlin = 0;
+int tempchoose = choosePerlin;
+
 Vertexun* terrain ;
 //GLfloat* uv = (GLfloat*) malloc((nb_vertices/3)*2*sizeof(GLfloat));
 unsigned int* indices ;
@@ -271,35 +274,35 @@ void compute_height_map(GLfloat** height_map,float t){
 
   FastNoise* myNoise = (FastNoise*) malloc(nbOctave*sizeof(FastNoise));
   FastNoise valueNoise;
-  FastNoise cellular(seed);
-  cellular.SetNoiseType(FastNoise::Perlin); // Set the desired noise type
-  cellular.SetFrequency( modfreq);
-  valueNoise.SetNoiseType(FastNoise::CubicFractal); // Set the desired noise type
+  FastNoise perlin(seed);
+  perlin.SetNoiseType(FastNoise::Perlin); // Set the desired noise type
+  perlin.SetFrequency( modfreq);
+  valueNoise.SetNoiseType(FastNoise::Cubic); // Set the desired noise type
   for(unsigned int k=0;k<nbOctave;k++){
     myNoise[k] = FastNoise(seed);
     myNoise[k].SetNoiseType(FastNoise::Simplex); // Set the desired noise type
     myNoise[k].SetFrequency(pow(lacunarity, k) * 0.01f * (1.0f/zoom));
   }
 
-  float a,b;
+  float a,b,c;
   for(unsigned int i=0;i<w;i++){
     for(unsigned int j=0;j<w;j++){
-      height_map[i][j] = 0;
+      a = 0;
       for(unsigned int k=0;k<nbOctave;k++){
-        a = cellular.GetNoise(i,j);
-        myNoise[k].SetFrequency(pow(a*lacunarity, k) * 0.01f * (1.0f/zoom));
-        height_map[i][j] += myNoise[k].GetNoise(i,j) * pow(persistence, k); 
+        myNoise[k].SetFrequency(pow(lacunarity, k) * 0.01f * (1.0f/zoom));
+        a += myNoise[k].GetNoise(i,j) * pow(persistence, k); 
       }
-      /*if (height_map[i][j] < -0.75f)
-        height_map[i][j] =valueNoise.GetNoise(i,j) ;
-      else if ((height_map[i][j] < -0.375f) && (height_map[i][j] >= -0.75f)){
-        height_map[i][j] *= -1.0f;
-        height_map[i][j] += (-0.75f); 
-      }*/
-      if (height_map[i][j] < 0)
-        height_map[i][j] *= flatcoef;
+      b = valueNoise.GetNoise(i,j)*0.2f ;
+      c = (perlin.GetNoise(i,j)+1)/2.0f;
+      if (choosePerlin == 0)
+        height_map[i][j] = a*(3*c*c) + b*(1-c);
+      else if (choosePerlin == 1)
+        height_map[i][j] = a;
+      else if (choosePerlin == 2)
+        height_map[i][j] = b;
       else
-        height_map[i][j] *= zoom;
+        height_map[i][j] = 3*c*c;
+      height_map[i][j] *= zoom;
     }
   }
   free(myNoise);
@@ -346,7 +349,7 @@ int main_loop(){
     GLCall(glDrawElements(GL_TRIANGLE_STRIP, nb_indices, GL_UNSIGNED_INT, (GLvoid*) 0)); // Starting from vertex 0; 3 vertices total -> 1 triangle
 
     if ((tempOctave != nbOctave) || (tempzoom != zoom) || (tempneg != neg) || (temppersistence != persistence)||
-        (tempseed != seed) || (tempmodfreq != modfreq) ||(templacunarity != lacunarity) || (tempflatcoef != flatcoef)){
+        (tempseed != seed) || (tempmodfreq != modfreq) ||(templacunarity != lacunarity) || (tempflatcoef != flatcoef) || (choosePerlin != tempchoose)){
       nbOctave = tempOctave;
       if (tempneg != neg)
         tempzoom = tempzoom * (- 1);
@@ -357,6 +360,7 @@ int main_loop(){
       persistence = temppersistence;
       flatcoef = tempflatcoef;
       modfreq = tempmodfreq;
+      choosePerlin = tempchoose;
       load_models();
       ib->update();
       vb->update();
@@ -383,7 +387,8 @@ int main_loop(){
       ImGui::SliderFloat("lacunarity", &templacunarity, 1.0f, 10.0f);      
       ImGui::SliderFloat("persistence", &temppersistence, -1.0f, 1.0f);      
       ImGui::SliderFloat("flatcoef", &tempflatcoef, 0.0f, 5.0f);      
-      ImGui::SliderFloat("mod freq", &tempmodfreq, 0.0f, 0.1f);
+      ImGui::SliderFloat("mod freq", &tempmodfreq, 0.0f, 0.01f);
+      ImGui::SliderInt("a=1, b=2, c=3", &tempchoose, 0, 3);
       ImGui::Text("Combined persistence changement with");
       ImGui::Text("lacunarity changement to have fun");
       ImGui::Text("");
